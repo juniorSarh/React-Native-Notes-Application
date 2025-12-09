@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   FlatList,
   TouchableOpacity,
   Modal,
-  Pressable,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
 import { router } from "expo-router";
 
@@ -20,6 +20,8 @@ type Note = {
   title?: string;
   updatedAt?: number; // timestamp when edited
 };
+
+const STORAGE_KEY_PREFIX = "NOTES_";
 
 export default function Home() {
   const { logout, user } = useAuth();
@@ -34,6 +36,55 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [loadingNotes, setLoadingNotes] = useState(true);
+
+  // Build a **per-user key** for storage (falls back to "guest")
+  const storageKey = useMemo(() => {
+    const idPart =
+      (user as any)?.id ||
+      (user as any)?.email ||
+      (user as any)?.username ||
+      "guest";
+    return `${STORAGE_KEY_PREFIX}${idPart}`;
+  }, [user]);
+
+  // 🔄 LOAD notes from AsyncStorage when Home mounts or user changes
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        setLoadingNotes(true);
+        const saved = await AsyncStorage.getItem(storageKey);
+        if (saved) {
+          const parsed: Note[] = JSON.parse(saved);
+          setNotes(parsed);
+        } else {
+          setNotes([]);
+        }
+      } catch (e) {
+        console.warn("Failed to load notes from storage", e);
+      } finally {
+        setLoadingNotes(false);
+      }
+    };
+
+    loadNotes();
+  }, [storageKey]);
+
+  // 💾 SAVE notes to AsyncStorage whenever they change
+  useEffect(() => {
+    const saveNotes = async () => {
+      try {
+        await AsyncStorage.setItem(storageKey, JSON.stringify(notes));
+      } catch (e) {
+        console.warn("Failed to save notes to storage", e);
+      }
+    };
+
+    // Avoid saving initial empty state before load completes
+    if (!loadingNotes) {
+      saveNotes();
+    }
+  }, [notes, storageKey, loadingNotes]);
 
   // OPEN MODAL for adding a fresh note
   const handleOpenAddModal = () => {
@@ -61,8 +112,8 @@ export default function Home() {
 
     const now = Date.now();
 
-    // UPDATE FUNCTION
     if (editingId) {
+      // UPDATE
       setNotes((prev) =>
         prev.map((note) =>
           note.id === editingId
@@ -71,13 +122,13 @@ export default function Home() {
                 text: text.trim(),
                 title: title.trim() || undefined,
                 category: category.trim(),
-                updatedAt: now, // timestamp of when edited
+                updatedAt: now,
               }
             : note
         )
       );
     } else {
-      // ADD FUNCTION
+      // ADD
       const newNote: Note = {
         id: `${now}-${Math.random()}`,
         text: text.trim(),
@@ -118,9 +169,8 @@ export default function Home() {
     }
   };
 
-  const toggleSortOrder = () => {
+  const toggleSortOrder = () =>
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-  };
 
   // READ + SEARCH + SORT FUNCTION
   const filteredAndSortedNotes = useMemo(() => {
@@ -226,15 +276,19 @@ export default function Home() {
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={filteredAndSortedNotes}
-          keyExtractor={(item) => item.id}
-          renderItem={renderNoteItem}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No notes added yet.</Text>
-          }
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
+        {loadingNotes ? (
+          <Text style={styles.emptyText}>Loading notes…</Text>
+        ) : (
+          <FlatList
+            data={filteredAndSortedNotes}
+            keyExtractor={(item) => item.id}
+            renderItem={renderNoteItem}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No notes added yet.</Text>
+            }
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
+        )}
       </View>
 
       {/* Modal for Add / Edit Note */}
@@ -310,14 +364,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: "#fff",
+    marginTop:50
   },
   header: {
-    marginBottom: 12,
+    marginBottom: 20,
+    padding:15
   },
   welcomeText: {
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: 18,
   },
   headerButtonsRow: {
     flexDirection: "row",
