@@ -1,67 +1,47 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
-import Button from "@/components/buttton";
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, Button, TextInput } from "react-native";
+import { useState } from "react";
+import { useAuth } from "./context/AuthContext";
+import { router } from "expo-router";
 
 export default function Login() {
-  const navigation = useNavigation();
+  const { login, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  if (user) return router.replace("/(protected)/home");
+
+  const handleLogin = async () => {
+    try {
+      await login(email, password);
+      router.replace("/(protected)/home");
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
+    <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
+      <Text style={{ fontSize: 24 }}>Login</Text>
+      {error && <Text style={{ color: "red" }}>{error}</Text>}
 
       <TextInput
-        style={styles.input}
         placeholder="Email"
-        placeholderTextColor="#888"
         value={email}
         onChangeText={setEmail}
+        style={{ borderWidth: 1, padding: 10, marginVertical: 10 }}
       />
 
       <TextInput
-        style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#888"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        style={{ borderWidth: 1, padding: 10, marginVertical: 10 }}
       />
 
-      <Button
-        title="Login"
-        icon="log-in-outline"
-        onPress={() => navigation.navigate("Index")}
-      />
-
-      <Button
-        title="Create Account"
-        backgroundColor="#4BA3C3"
-        icon="person-add-outline"
-        onPress={() => navigation.navigate("Register")}
-      />
+      <Button title="Login" onPress={handleLogin} />
+      <Button title="Go to Register" onPress={() => router.push("/register")} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0c0c0cff",
-    padding: 25,
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 35,
-  },
-  input: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-});

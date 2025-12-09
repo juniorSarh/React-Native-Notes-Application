@@ -1,75 +1,55 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, StyleSheet } from "react-native";
-import Button from "@/components/buttton";
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, Button, TextInput } from "react-native";
+import { useState } from "react";
+import { useAuth } from "./context/AuthContext";
+import { router } from "expo-router";
 
 export default function Register() {
-  const navigation = useNavigation();
-  const [name, setName] = useState("");
+  const { register, user } = useAuth();
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  if (user) return router.replace("/(protected)/home");
+
+  const handleRegister = async () => {
+    try {
+      await register(email, password, username);
+      router.replace("/(protected)/home");
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+    <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
+      <Text style={{ fontSize: 24 }}>Register</Text>
+      {error && <Text style={{ color: "red" }}>{error}</Text>}
 
       <TextInput
-        style={styles.input}
-        placeholder="Full Name"
-        placeholderTextColor="#888"
-        value={name}
-        onChangeText={setName}
-      />
-
-      <TextInput
-        style={styles.input}
         placeholder="Email"
-        placeholderTextColor="#888"
         value={email}
         onChangeText={setEmail}
+        style={{ borderWidth: 1, padding: 10, marginVertical: 10 }}
       />
 
       <TextInput
-        style={styles.input}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+        style={{ borderWidth: 1, padding: 10, marginVertical: 10 }}
+      />
+
+      <TextInput
         placeholder="Password"
-        placeholderTextColor="#888"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
+        style={{ borderWidth: 1, padding: 10, marginVertical: 10 }}
       />
 
-      <Button
-        title="Register"
-        icon="person-add-outline"
-        onPress={() => navigation.navigate("Index")}
-      />
-
-      <Button
-        title="Already have an account?"
-        backgroundColor="#4BA3C3"
-        onPress={() => navigation.navigate("Login")}
-      />
+      <Button title="Register" onPress={handleRegister} />
+      <Button title="Go to Login" onPress={() => router.push("/login")} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0c0c0cff",
-    padding: 25,
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 35,
-  },
-  input: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 15,
-  },
-});
