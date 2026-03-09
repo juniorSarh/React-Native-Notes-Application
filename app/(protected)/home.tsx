@@ -11,14 +11,15 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../context/AuthContext";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 type Note = {
   id: string;
   text: string;
-  dateAdded: number; // timestamp
+  dateAdded: number;
   category: string;
   title?: string;
-  updatedAt?: number; // timestamp when edited
+  updatedAt?: number;
 };
 
 const STORAGE_KEY_PREFIX = "NOTES_";
@@ -26,7 +27,6 @@ const STORAGE_KEY_PREFIX = "NOTES_";
 export default function Home() {
   const { logout, user } = useAuth();
 
-  // ---- Notes state ----
   const [notes, setNotes] = useState<Note[]>([]);
   const [text, setText] = useState("");
   const [title, setTitle] = useState("");
@@ -38,7 +38,6 @@ export default function Home() {
   const [modalVisible, setModalVisible] = useState(false);
   const [loadingNotes, setLoadingNotes] = useState(true);
 
-  // Build a **per-user key** for storage (falls back to "guest")
   const storageKey = useMemo(() => {
     const idPart =
       (user as any)?.id ||
@@ -48,45 +47,33 @@ export default function Home() {
     return `${STORAGE_KEY_PREFIX}${idPart}`;
   }, [user]);
 
-  // 🔄 LOAD notes from AsyncStorage when Home mounts or user changes
   useEffect(() => {
     const loadNotes = async () => {
       try {
         setLoadingNotes(true);
         const saved = await AsyncStorage.getItem(storageKey);
-        if (saved) {
-          const parsed: Note[] = JSON.parse(saved);
-          setNotes(parsed);
-        } else {
-          setNotes([]);
-        }
+        if (saved) setNotes(JSON.parse(saved));
       } catch (e) {
-        console.warn("Failed to load notes from storage", e);
+        console.warn("Failed to load notes", e);
       } finally {
         setLoadingNotes(false);
       }
     };
-
     loadNotes();
   }, [storageKey]);
 
-  // 💾 SAVE notes to AsyncStorage whenever they change
   useEffect(() => {
     const saveNotes = async () => {
       try {
         await AsyncStorage.setItem(storageKey, JSON.stringify(notes));
       } catch (e) {
-        console.warn("Failed to save notes to storage", e);
+        console.warn("Failed to save notes", e);
       }
     };
 
-    // Avoid saving initial empty state before load completes
-    if (!loadingNotes) {
-      saveNotes();
-    }
+    if (!loadingNotes) saveNotes();
   }, [notes, storageKey, loadingNotes]);
 
-  // OPEN MODAL for adding a fresh note
   const handleOpenAddModal = () => {
     setEditingId(null);
     setText("");
@@ -96,10 +83,7 @@ export default function Home() {
     setModalVisible(true);
   };
 
-  // ADD / UPDATE note (inside modal)
   const handleSaveNote = () => {
-    setError("");
-
     if (!text.trim()) {
       setError("Notes text is required.");
       return;
@@ -113,7 +97,6 @@ export default function Home() {
     const now = Date.now();
 
     if (editingId) {
-      // UPDATE
       setNotes((prev) =>
         prev.map((note) =>
           note.id === editingId
@@ -128,7 +111,6 @@ export default function Home() {
         )
       );
     } else {
-      // ADD
       const newNote: Note = {
         id: `${now}-${Math.random()}`,
         text: text.trim(),
@@ -139,12 +121,11 @@ export default function Home() {
       setNotes((prev) => [newNote, ...prev]);
     }
 
-    // Reset + close modal
+    setModalVisible(false);
     setText("");
     setTitle("");
     setCategory("");
     setEditingId(null);
-    setModalVisible(false);
   };
 
   const handleEdit = (note: Note) => {
@@ -152,27 +133,16 @@ export default function Home() {
     setText(note.text);
     setTitle(note.title || "");
     setCategory(note.category);
-    setError("");
     setModalVisible(true);
   };
 
-  // DELETE FUNCTION
   const handleDelete = (id: string) => {
     setNotes((prev) => prev.filter((note) => note.id !== id));
-    if (editingId === id) {
-      setEditingId(null);
-      setText("");
-      setTitle("");
-      setCategory("");
-      setError("");
-      setModalVisible(false);
-    }
   };
 
   const toggleSortOrder = () =>
     setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
 
-  // READ + SEARCH + SORT FUNCTION
   const filteredAndSortedNotes = useMemo(() => {
     let data = [...notes];
 
@@ -197,107 +167,92 @@ export default function Home() {
 
   const renderNoteItem = ({ item }: { item: Note }) => (
     <View style={styles.noteCard}>
-      {item.title ? <Text style={styles.noteTitle}>{item.title}</Text> : null}
-      <Text style={styles.noteCategory}>Category: {item.category}</Text>
+      {item.title && <Text style={styles.noteTitle}>{item.title}</Text>}
+      <Text style={styles.noteCategory}>{item.category}</Text>
       <Text style={styles.noteText}>{item.text}</Text>
-      <Text style={styles.noteMeta}>
-        Added: {new Date(item.dateAdded).toLocaleString()}
-      </Text>
-      {item.updatedAt && (
-        <Text style={styles.noteMeta}>
-          Updated: {new Date(item.updatedAt).toLocaleString()}
-        </Text>
-      )}
 
-      <View style={styles.noteActionsRow}>
-        <TouchableOpacity
-          style={[styles.smallButton, styles.editButton]}
-          onPress={() => handleEdit(item)}
-        >
-          <Text style={styles.smallButtonText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.smallButton, styles.deleteButton]}
-          onPress={() => handleDelete(item.id)}
-        >
-          <Text style={styles.smallButtonText}>Delete</Text>
-        </TouchableOpacity>
+      <View style={styles.noteFooter}>
+        <Text style={styles.noteMeta}>
+          {new Date(item.dateAdded).toLocaleDateString()}
+        </Text>
+
+        <View style={styles.noteActionsRow}>
+          <TouchableOpacity onPress={() => handleEdit(item)}>
+            <Ionicons name="create-outline" size={20} color="#007AFF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Header + user info */}
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>
-          Welcome, {user?.username ?? "Guest"} 🎉
-        </Text>
-        <View style={styles.headerButtonsRow}>
+        <View>
+          <Text style={styles.welcomeText}>
+            Welcome, {user?.username ?? "Guest"} 👋
+          </Text>
+          <Text style={styles.subtitle}>Your personal notes</Text>
+        </View>
+
+        <View style={styles.headerActions}>
           <TouchableOpacity
-            style={styles.headerButton}
+            style={styles.iconButton}
             onPress={() => router.push("/(protected)/profile")}
           >
-            <Text style={styles.headerButtonText}>Go to Profile</Text>
+            <Ionicons name="person-circle-outline" size={28} color="#007AFF" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={logout}>
-            <Text style={styles.headerButtonText}>Logout</Text>
+
+          <TouchableOpacity style={styles.iconButton} onPress={logout}>
+            <Ionicons name="log-out-outline" size={26} color="#FF3B30" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Add Note button */}
-      <View style={styles.section}>
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleOpenAddModal}
-        >
-          <Text style={styles.primaryButtonText}>+ Add Note</Text>
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search-outline" size={20} color="#888" />
+        <TextInput
+          placeholder="Search notes..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+        />
+      </View>
+
+      {/* Sort */}
+      <View style={styles.sortRow}>
+        <Text style={styles.sortLabel}>Sort by date:</Text>
+        <TouchableOpacity style={styles.sortButton} onPress={toggleSortOrder}>
+          <Text style={styles.sortButtonText}>
+            {sortOrder === "asc" ? "Oldest → Newest" : "Newest → Oldest"}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Search + Sort + Notes list */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Your Notes</Text>
+      {/* Notes List */}
+      <FlatList
+        data={filteredAndSortedNotes}
+        keyExtractor={(item) => item.id}
+        renderItem={renderNoteItem}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No notes added yet.</Text>
+        }
+        contentContainerStyle={{ paddingBottom: 100 }}
+      />
 
-        <TextInput
-          placeholder="Search notes by text, title, or category"
-          value={search}
-          onChangeText={setSearch}
-          style={styles.input}
-        />
+      {/* Floating Add Button */}
+      <TouchableOpacity style={styles.fab} onPress={handleOpenAddModal}>
+        <Ionicons name="add" size={30} color="#fff" />
+      </TouchableOpacity>
 
-        <View style={styles.sortRow}>
-          <Text style={styles.sortLabel}>Sort by date added:</Text>
-          <TouchableOpacity style={styles.sortButton} onPress={toggleSortOrder}>
-            <Text style={styles.sortButtonText}>
-              {sortOrder === "asc" ? "Oldest → Newest" : "Newest → Oldest"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {loadingNotes ? (
-          <Text style={styles.emptyText}>Loading notes…</Text>
-        ) : (
-          <FlatList
-            data={filteredAndSortedNotes}
-            keyExtractor={(item) => item.id}
-            renderItem={renderNoteItem}
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No notes added yet.</Text>
-            }
-            contentContainerStyle={{ paddingBottom: 40 }}
-          />
-        )}
-      </View>
-
-      {/* Modal for Add / Edit Note */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
+      {/* Modal */}
+      <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
@@ -321,33 +276,26 @@ export default function Home() {
             />
 
             <TextInput
-              placeholder="Notes (text to be saved)"
+              placeholder="Write your note..."
               value={text}
               onChangeText={setText}
-              style={[styles.input, styles.textArea]}
               multiline
+              style={[styles.input, styles.textArea]}
             />
 
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalCancelButton]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setError("");
-                  setEditingId(null);
-                  setText("");
-                  setTitle("");
-                  setCategory("");
-                }}
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.modalSaveButton]}
+                style={styles.saveButton}
                 onPress={handleSaveNote}
               >
-                <Text style={styles.modalSaveText}>
+                <Text style={styles.saveText}>
                   {editingId ? "Update" : "Save"}
                 </Text>
               </TouchableOpacity>
@@ -362,184 +310,191 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
-    marginTop:50
+    padding: 20,
+    backgroundColor: "#F4F6F8",
   },
+
   header: {
-    marginBottom: 20,
-    padding:15
-  },
-  welcomeText: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 18,
-  },
-  headerButtonsRow: {
     flexDirection: "row",
-    gap: 8,
-  },
-  headerButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: "#007AFF",
-  },
-  headerButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  section: {
-    marginTop: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  error: {
-    color: "red",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginVertical: 6,
-    borderRadius: 6,
-    backgroundColor: "#fff",
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  primaryButton: {
-    marginTop: 6,
-    paddingVertical: 12,
-    borderRadius: 6,
+    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#007AFF",
+    marginBottom: 20,
   },
-  primaryButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
+
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: "700",
   },
+
+  subtitle: {
+    color: "#666",
+    marginTop: 4,
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  iconButton: {
+    padding: 4,
+  },
+
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+
+  searchInput: {
+    flex: 1,
+    padding: 10,
+  },
+
   sortRow: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginVertical: 6,
+    marginBottom: 10,
   },
-  sortLabel: {
-    fontSize: 14,
-  },
+
   sortButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#007AFF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
+
   sortButtonText: {
     color: "#007AFF",
-    fontWeight: "600",
   },
+  sortLabel:{
+
+  },
+
   emptyText: {
-    marginTop: 10,
-    color: "#888",
     textAlign: "center",
+    color: "#888",
+    marginTop: 30,
   },
+
   noteCard: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    marginVertical: 6,
-    backgroundColor: "#fafafa",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    elevation: 3,
   },
+
   noteTitle: {
     fontSize: 16,
     fontWeight: "700",
-    marginBottom: 4,
   },
+
   noteCategory: {
-    fontSize: 13,
-    fontWeight: "500",
-    marginBottom: 4,
-    color: "#555",
+    fontSize: 12,
+    color: "#007AFF",
+    marginBottom: 6,
   },
+
   noteText: {
     fontSize: 14,
-    marginBottom: 4,
+    marginBottom: 8,
   },
+
+  noteFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
   noteMeta: {
     fontSize: 11,
     color: "#777",
   },
+
   noteActionsRow: {
     flexDirection: "row",
-    marginTop: 8,
-    justifyContent: "flex-end",
-    gap: 8,
+    gap: 12,
   },
-  smallButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+
+  fab: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
   },
-  editButton: {
-    backgroundColor: "#FFCC00",
-  },
-  deleteButton: {
-    backgroundColor: "#FF3B30",
-  },
-  smallButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 12,
-  },
-  // Modal styles
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
-    padding: 16,
+    padding: 20,
   },
+
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 16,
-    elevation: 4,
+    borderRadius: 12,
+    padding: 20,
   },
+
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: 8,
+    marginBottom: 10,
   },
+
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: "top",
+  },
+
   modalButtonsRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    marginTop: 10,
-    gap: 8,
+    gap: 10,
   },
-  modalButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+
+  cancelButton: {
+    backgroundColor: "#eee",
+    padding: 10,
     borderRadius: 6,
   },
-  modalCancelButton: {
-    backgroundColor: "#eee",
-  },
-  modalSaveButton: {
+
+  saveButton: {
     backgroundColor: "#007AFF",
+    padding: 10,
+    borderRadius: 6,
   },
-  modalCancelText: {
-    color: "#333",
+
+  cancelText: {
     fontWeight: "600",
   },
-  modalSaveText: {
+
+  saveText: {
     color: "#fff",
     fontWeight: "600",
+  },
+
+  error: {
+    color: "red",
+    marginBottom: 8,
   },
 });
