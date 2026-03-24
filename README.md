@@ -1,6 +1,7 @@
 <img src="https://socialify.git.ci/juniorSarh/React-Native-Notes-Application/image?language=1&owner=1&name=1&stargazers=1&theme=Light" alt="React-Native-Notes-Application" width="640" height="320" />
 
-# Welcome to your Expo app 👋
+# Welcome to Note Application 
+A note application is a digital tool designed to help users create, organize, and manage notes efficiently. It typically features a clean and user-friendly interface that allows for quick note-taking, editing, and retrieval
 
 
 
