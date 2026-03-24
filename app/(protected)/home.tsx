@@ -191,26 +191,32 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={styles.header}>
-        <View>
+        {/* Top Right Icons */}
+        <View style={styles.headerTopRow}>
+          <View style={{ flex: 1 }} />
+
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.push("/(protected)/profile")}
+            >
+              <Ionicons name="person-circle-outline" size={28} color="#007AFF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.iconButton} onPress={logout}>
+              <Ionicons name="log-out-outline" size={26} color="#FF3B30" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Welcome Text BELOW */}
+        <View style={styles.welcomeContainer}>
           <Text style={styles.welcomeText}>
             Welcome, {user?.username ?? "Guest"} 👋
           </Text>
           <Text style={styles.subtitle}>Your personal notes</Text>
-        </View>
-
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => router.push("/(protected)/profile")}
-          >
-            <Ionicons name="person-circle-outline" size={28} color="#007AFF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton} onPress={logout}>
-            <Ionicons name="log-out-outline" size={26} color="#FF3B30" />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -227,7 +233,7 @@ export default function Home() {
 
       {/* Sort */}
       <View style={styles.sortRow}>
-        <Text style={styles.sortLabel}>Sort by date:</Text>
+        <Text >Sort by date:</Text>
         <TouchableOpacity style={styles.sortButton} onPress={toggleSortOrder}>
           <Text style={styles.sortButtonText}>
             {sortOrder === "asc" ? "Oldest → Newest" : "Newest → Oldest"}
@@ -235,7 +241,7 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
-      {/* Notes List */}
+      {/* Notes */}
       <FlatList
         data={filteredAndSortedNotes}
         keyExtractor={(item) => item.id}
@@ -246,12 +252,12 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 100 }}
       />
 
-      {/* Floating Add Button */}
+      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={handleOpenAddModal}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
 
-      {/* Modal */}
+      {/* MODAL */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -308,37 +314,25 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#F4F6F8",
-  },
+  container: { flex: 1, padding: 20, backgroundColor: "#F4F6F8" },
 
-  header: {
+  header: { marginBottom: 20 },
+
+  headerTopRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
+    justifyContent: "flex-end",
+    marginBottom: 10,
   },
 
-  welcomeText: {
-    fontSize: 22,
-    fontWeight: "700",
-  },
+  headerActions: { flexDirection: "row", gap: 12 },
 
-  subtitle: {
-    color: "#666",
-    marginTop: 4,
-  },
+  iconButton: { padding: 4 },
 
-  headerActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
+  welcomeContainer: { marginTop: 5 },
 
-  iconButton: {
-    padding: 4,
-  },
+  welcomeText: { fontSize: 24, fontWeight: "700" },
+
+  subtitle: { color: "#666", marginTop: 4 },
 
   searchContainer: {
     flexDirection: "row",
@@ -349,10 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  searchInput: {
-    flex: 1,
-    padding: 10,
-  },
+  searchInput: { flex: 1, padding: 10 },
 
   sortRow: {
     flexDirection: "row",
@@ -367,13 +358,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
+  sortlabel: { color: "#007AFF", fontWeight: "600" },
 
-  sortButtonText: {
-    color: "#007AFF",
-  },
-  sortLabel:{
-
-  },
+  sortButtonText: { color: "#007AFF" },
 
   emptyText: {
     textAlign: "center",
@@ -389,10 +376,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
-  noteTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  noteTitle: { fontSize: 16, fontWeight: "700" },
 
   noteCategory: {
     fontSize: 12,
@@ -400,10 +384,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  noteText: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
+  noteText: { fontSize: 14, marginBottom: 8 },
 
   noteFooter: {
     flexDirection: "row",
@@ -411,15 +392,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  noteMeta: {
-    fontSize: 11,
-    color: "#777",
-  },
+  noteMeta: { fontSize: 11, color: "#777" },
 
-  noteActionsRow: {
-    flexDirection: "row",
-    gap: 12,
-  },
+  noteActionsRow: { flexDirection: "row", gap: 12 },
 
   fab: {
     position: "absolute",
@@ -431,7 +406,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5,
   },
 
   modalOverlay: {
@@ -484,17 +458,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
 
-  cancelText: {
-    fontWeight: "600",
-  },
+  cancelText: { fontWeight: "600" },
 
-  saveText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
+  saveText: { color: "#fff", fontWeight: "600" },
 
-  error: {
-    color: "red",
-    marginBottom: 8,
-  },
+  error: { color: "red", marginBottom: 8 },
 });
