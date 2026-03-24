@@ -268,7 +268,7 @@ export default function Home() {
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <TextInput
-              placeholder="Title (optional)"
+              placeholder="Title"
               value={title}
               onChangeText={setTitle}
               style={styles.input}
