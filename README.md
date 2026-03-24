@@ -10,13 +10,18 @@ A note application is a digital tool designed to help users create, organize, an
 
 ## Get started
 
-1. Install dependencies
+1. clone the application
+   ```bash
+   git clone https://github.com/juniorSarh/React-Native-Notes-Application
+   cd React-Native-Notes-Application
+   ```
+3. Install dependencies
 
    ```bash
    npm install
    ```
 
-2. Start the app
+4. Start the app
 
    ```bash
    npx expo start
